@@ -1,0 +1,100 @@
+version: "3"
+services:
+  zookeeper:
+    container_name: zookeeper
+    image: zookeeper:latest
+    ports:
+    - "2181:2181"
+    networks:
+      - backend-network
+  kafka:
+    container_name: kafka
+    image: confluentinc/cp-kafka
+    environment:
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_CREATE_TOPICS=demo2-events
+    networks:
+      - backend-network
+    ports:
+    - "9092:9092"
+  service-discovery:
+    container_name: service-discovery
+    image: service-discovery:v1
+    ports:
+      - "8761:8761"
+    networks:
+      - backend-network
+  config-server:
+    container_name: config-server
+    image: config-server:v1
+    ports:
+      - "8888:8888"
+    networks:
+      - backend-network
+    depends_on:
+      - service-discovery
+  cloud-gateway:
+    container_name: cloud-gateway
+    image: cloud-gateway:v1
+    ports:
+      - "8760:8760"
+    networks:
+      - backend-network
+    depends_on:
+      - service-discovery
+  mysqldb:
+    container_name: mysqldb
+    image: mysql:8
+    networks:
+      - backend-network
+    volumes:
+      - data-volume:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=Welcome123$$
+  review-service:
+    restart: on-failure:5
+    container_name: review-service
+    image: review-service:v1
+    ports:
+      - "8090:8090"
+    networks: 
+      - backend-network
+    depends_on:
+      - service-discovery
+      - config-server
+      - mysqldb
+      - cloud-gateway
+      - kafka
+  restaurant-search-service:
+    container_name: restaurant-search-service
+    image: restaurant-search-service:v1
+    ports:
+    - "8080:8080"
+    networks:
+      - backend-network
+    depends_on:
+      - service-discovery
+      - mysqldb
+  customer-service:
+    restart: on-failure:5
+    container_name: customer-service
+    image: customer-service:v1
+    ports:
+      - "8091:8091"
+    networks:
+      - backend-network
+    depends_on:
+      - service-discovery
+      - mysqldb
+      - cloud-gateway
+      - kafka
+
+networks:
+  backend-network:
+    external: true
+volumes:
+  data-volume:
+    name: data-volume
+    external: true
