@@ -1,0 +1,33 @@
+http://localhost:8091/swagger-ui.html/
+sudo docker volume create data-volume
+sudo docker network create backend-network
+sudo docker container run -v data-volume:/var/lib/mysql --name mysqldb --network backend-network -e MYSQL_ROOT_PASSWORD=Welcome123$ -d mysql:8
+sudo docker container logs mysqldb
+sudo docker container ps
+
+sudo docker exec -it mysqldb bash
+mysql -uroot -pWelcome123$
+
+sudo docker stop container mysqldb
+sudo docker container prune
+
+sudo docker image rm service-discovery:v1
+
+sudo docker run -p  8761:8761 --network backend-network -d service-discovery:v1
+
+sudo docker image build -t customer-service:v1 .
+
+sudo docker container run -p 8091:8091 --name customer-service --network backend-network customer-service:v1
+
+sudo docker image build -t config-server:v1 .
+
+
+sudo docker container run -p 8888:8888 --name config-server --network backend-network -d config-server:v1
+
+sudo docker run --name zookeeper --network backend-network -p 2181:2181 zookeeper:latest
+
+sudo docker run --name kafka --network backend-network -p 9092:9092 -e KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 confluentinc/cp-kafka
+
+
+
+sudo docker run -it --name kafka --network backend-network -p 9092:9092 -e KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 -e KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1 confluentinc/cp-kafka kafka-topics.sh -topic demo2-events -create --replication-factor 1 --partitions 1 --bootstrap-server localhost:9092
