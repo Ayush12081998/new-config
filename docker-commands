@@ -10,7 +10,9 @@ sudo docker container ps
 sudo docker exec -it mysqldb bash
 mysql -uroot -pWelcome123$
 
-sudo docker stop container mysqldb
+sudo docker stop container mysqldb  == stops container with signal terminate (prog can do cleanup etc..)
+sudo docker kill container <container_name> == stops container immediately (kill the process running in container)don't give time for clean up etc..
+
 sudo docker container prune
 
 sudo docker image rm service-discovery:v1
